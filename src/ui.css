@@ -76,7 +76,7 @@ button { font: inherit; color: inherit; }
 .bracket { display: flex; gap: 10px; overflow-x: auto; padding: 8px 0; }
 .col { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; min-width: 190px; }
 .bm { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.bid { font-size: 11px; color: var(--muted); padding: 4px 10px 0; }
+.bid { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); padding: 4px 10px 0; }
 .slot { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--line); }
 .slot .name { flex: 1; font-weight: 600; font-size: 14px; }
 .slot .name.muted { font-weight: 400; }
@@ -131,3 +131,4 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
 /* Same rule as the matchup rows: a name gets two lines of height, centered, so every
    slot in the bracket is the same height whether or not the name wraps. */
 .slot .name { display: flex; align-items: center; min-height: 2.7em; }
+.rule { margin: 10px 0 0; font-size: 13px; }
