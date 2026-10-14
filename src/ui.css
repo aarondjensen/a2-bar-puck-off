@@ -97,3 +97,9 @@ button { font: inherit; color: inherit; }
 .dateline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dateline input { font-size: 16px; padding: 8px 10px; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 8px; color-scheme: dark light; }
+details.fold > summary { list-style: none; cursor: pointer; text-align: center; font-size: 15px; font-weight: 700;
+  padding: 12px 0; position: relative; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: ""; position: absolute; right: 4px; top: 50%; width: 8px; height: 8px;
+  margin-top: -6px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform .15s; }
+details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
