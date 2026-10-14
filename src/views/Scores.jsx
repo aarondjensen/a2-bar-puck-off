@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SESSIONS, PLAYOFF_DATE } from "../lib/schedule.js";
+import { SESSIONS, PLAYOFF_DATES } from "../lib/schedule.js";
 import { playoffMatchId } from "../lib/bracket.js";
 import { resultFits, validateScore } from "../lib/scoring.js";
 import { teamById } from "../lib/teams.js";
@@ -31,7 +31,7 @@ export default function Scores({ store, results, user, isAdmin, isMember, bracke
             {formatDate(x.date)}
           </button>
         ))}
-        <button className={playoffs ? "on" : ""} onClick={() => setSession(6)}>{formatDate(PLAYOFF_DATE)}</button>
+        <button className={playoffs ? "on" : ""} onClick={() => setSession(6)}>{formatDate(PLAYOFF_DATES[0])}</button>
       </div>
       {user && !isMember && <JoinPrompt store={store} />}
       {!user && (
@@ -40,7 +40,7 @@ export default function Scores({ store, results, user, isAdmin, isMember, bracke
         </button>
       )}
       <section className="card">
-        <h2 className="date">{playoffs ? `Playoffs · ${formatDate(PLAYOFF_DATE)}` : formatDate(s.date)}</h2>
+        <h2 className="date">{playoffs ? `Playoffs · ${PLAYOFF_DATES.map(formatDate).join(", ")}` : formatDate(s.date)}</h2>
         {matches.map((m) => (
           <MatchRow key={m.id} m={m} result={results[m.id]} store={store} canPost={canPost} isAdmin={isAdmin} />
         ))}

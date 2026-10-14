@@ -192,7 +192,7 @@ async function createFirebaseStore() {
     async saveConfig(cfg) {
       try {
         await fs.setDoc(fs.doc(db, "config", "league"), {
-          teams: cfg.teams, dates: cfg.dates, playoff: cfg.playoff,
+          teams: cfg.teams, dates: cfg.dates, playoffs: cfg.playoffs,
           by: auth.currentUser?.uid, at: fs.serverTimestamp(),
         });
         return { ok: true };
