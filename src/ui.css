@@ -118,3 +118,4 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
 .memberrow .rm { display: flex; gap: 14px; }
 .link.danger { color: var(--danger); font-weight: 700; }
 .center { text-align: center; }
+.forgot { justify-self: end; margin-top: -4px; }
