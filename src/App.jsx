@@ -41,7 +41,7 @@ export default function App() {
         <SignIn store={league.store} onDone={() => setSigningIn(false)} />
       )}
       <main className="page">
-        {tab === "schedule" && <Schedule />}
+        {tab === "schedule" && <Schedule {...league} />}
         {tab === "scores" && <Scores {...league} onSignIn={() => setSigningIn(true)} />}
         {tab === "standings" && <Standings {...league} />}
         {tab === "playoffs" && <Playoffs {...league} />}
