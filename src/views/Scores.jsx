@@ -11,7 +11,8 @@ function defaultSession() {
   return SESSIONS.find((s) => s.date >= today)?.n ?? SESSIONS.length;
 }
 
-export default function Scores({ store, results, user, isAdmin, bracket, onSignIn }) {
+export default function Scores({ store, results, user, isAdmin, isMember, bracket, onSignIn }) {
+  const canPost = !!user && isMember;
   const [session, setSession] = useState(defaultSession);
   const playoffs = session === 6;
   const s = SESSIONS[session - 1];
@@ -32,6 +33,7 @@ export default function Scores({ store, results, user, isAdmin, bracket, onSignI
         ))}
         <button className={playoffs ? "on" : ""} onClick={() => setSession(6)}>{formatDate(PLAYOFF_DATE)}</button>
       </div>
+      {user && !isMember && <JoinPrompt store={store} />}
       {!user && (
         <button className="btn signprompt" onClick={onSignIn}>
           Sign in to enter scores
@@ -40,14 +42,35 @@ export default function Scores({ store, results, user, isAdmin, bracket, onSignI
       <section className="card">
         <h2 className="date">{playoffs ? `Playoffs · ${formatDate(PLAYOFF_DATE)}` : formatDate(s.date)}</h2>
         {matches.map((m) => (
-          <MatchRow key={m.id} m={m} result={results[m.id]} store={store} user={user} isAdmin={isAdmin} />
+          <MatchRow key={m.id} m={m} result={results[m.id]} store={store} canPost={canPost} isAdmin={isAdmin} />
         ))}
       </section>
     </>
   );
 }
 
-function MatchRow({ m, result, store, user, isAdmin }) {
+function JoinPrompt({ store }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  async function join(e) {
+    e.preventDefault();
+    setBusy(true);
+    const r = await store.join(code);
+    setBusy(false);
+    if (!r.ok) setError(r.error);
+  }
+  return (
+    <form className="card form joinbox" onSubmit={join}>
+      <input className="field" placeholder="League code" autoCapitalize="none" autoCorrect="off"
+        value={code} onChange={(e) => { setCode(e.target.value); setError(null); }} />
+      <button className="btn" disabled={busy || !code.trim()}>Join the league</button>
+      {error && <p className="err">{error}</p>}
+    </form>
+  );
+}
+
+function MatchRow({ m, result, store, canPost, isAdmin }) {
   const [editing, setEditing] = useState(false);
   const A = teamById(m.a);
   const B = teamById(m.b);
@@ -67,8 +90,8 @@ function MatchRow({ m, result, store, user, isAdmin }) {
   // A result exists but belongs to an earlier pairing (a score upstream was corrected).
   const stale = !!result && !done;
 
-  // Only a signed-in user gets a form; everybody sees finished scores.
-  if (!result && !user) return <div className="match">{head}</div>;
+  // Only a league member gets a form; everybody sees finished scores.
+  if (!result && !canPost) return <div className="match">{head}</div>;
 
   if (!result || editing) {
     return (

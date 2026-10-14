@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { currentConfig, validateConfig } from "../lib/config.js";
 
 export default function Admin({ store, isAdmin }) {
   const [cfg, setCfg] = useState(currentConfig);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [code, setCode] = useState("");
+  const [codeMsg, setCodeMsg] = useState(null);
+  useEffect(() => { if (isAdmin) store.getCode().then(setCode); }, [store, isAdmin]);
 
   if (!isAdmin) return <p className="muted">Admin only</p>;
 
@@ -22,8 +25,22 @@ export default function Admin({ store, isAdmin }) {
     setMsg(r.ok ? { ok: "Saved" } : { err: r.error });
   }
 
+  async function saveCode() {
+    if (!code.trim()) { setCodeMsg({ err: "Enter a code" }); return; }
+    const r = await store.saveCode(code.trim());
+    setCodeMsg(r.ok ? { ok: "Saved" } : { err: r.error });
+  }
+
   return (
     <>
+      <h3 className="sub">League code</h3>
+      <section className="card form">
+        <input className="field" aria-label="League code" autoCapitalize="none" autoCorrect="off" value={code}
+          onChange={(e) => { setCode(e.target.value); setCodeMsg(null); }} />
+        <button className="btn" onClick={saveCode}>Save code</button>
+        {codeMsg?.err && <p className="err">{codeMsg.err}</p>}
+        {codeMsg?.ok && <p className="warn">{codeMsg.ok}</p>}
+      </section>
       <h3 className="sub">Teams</h3>
       {cfg.teams.map((t, i) => (
         <section key={t.id} className="card form">
