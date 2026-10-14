@@ -5,6 +5,7 @@ import Schedule from "./views/Schedule.jsx";
 import Scores from "./views/Scores.jsx";
 import Standings from "./views/Standings.jsx";
 import Playoffs from "./views/Playoffs.jsx";
+import Admin from "./views/Admin.jsx";
 
 const TABS = [
   ["schedule", "Schedule"],
@@ -12,14 +13,17 @@ const TABS = [
   ["standings", "Standings"],
   ["playoffs", "Playoffs"],
 ];
+const ADMIN_TAB = ["admin", "Admin"];
 
 export default function App() {
   const league = useLeague();
   const [tab, setTab] = useState(() => {
     const h = location.hash.slice(1);
-    return TABS.some(([k]) => k === h) ? h : "schedule";
+    return [...TABS, ADMIN_TAB].some(([k]) => k === h) ? h : "schedule";
   });
   const [signingIn, setSigningIn] = useState(false);
+  const tabs = league.isAdmin ? [...TABS, ADMIN_TAB] : TABS;
+  const shown = tab === "admin" && !league.isAdmin ? "schedule" : tab;
   const go = (k) => { setTab(k); history.replaceState(null, "", `#${k}`); };
 
   if (league.error) return <p className="boot">{league.error}</p>;
@@ -41,14 +45,15 @@ export default function App() {
         <SignIn store={league.store} onDone={() => setSigningIn(false)} />
       )}
       <main className="page">
-        {tab === "schedule" && <Schedule {...league} />}
-        {tab === "scores" && <Scores {...league} onSignIn={() => setSigningIn(true)} />}
-        {tab === "standings" && <Standings {...league} />}
-        {tab === "playoffs" && <Playoffs {...league} />}
+        {shown === "schedule" && <Schedule {...league} />}
+        {shown === "scores" && <Scores {...league} onSignIn={() => setSigningIn(true)} />}
+        {shown === "standings" && <Standings {...league} />}
+        {shown === "playoffs" && <Playoffs {...league} />}
+        {shown === "admin" && <Admin key={JSON.stringify(league.config)} {...league} />}
       </main>
       <nav className="tabs">
-        {TABS.map(([k, label]) => (
-          <button key={k} className={tab === k ? "on" : ""} onClick={() => go(k)}>{label}</button>
+        {tabs.map(([k, label]) => (
+          <button key={k} className={shown === k ? "on" : ""} onClick={() => go(k)}>{label}</button>
         ))}
       </nav>
     </div>

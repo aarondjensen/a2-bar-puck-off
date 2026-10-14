@@ -27,21 +27,18 @@ export default function Scores({ store, results, user, isAdmin, bracket, onSignI
       <div className="chips">
         {SESSIONS.map((x) => (
           <button key={x.n} className={session === x.n ? "on" : ""} onClick={() => setSession(x.n)}>
-            {x.n}
+            {formatDate(x.date)}
           </button>
         ))}
-        <button className={playoffs ? "on" : ""} onClick={() => setSession(6)}>Playoffs</button>
+        <button className={playoffs ? "on" : ""} onClick={() => setSession(6)}>{formatDate(PLAYOFF_DATE)}</button>
       </div>
-      <h2 className="sub">
-        <span>{playoffs ? "Playoffs" : `Session ${s.n}`}</span>
-        <span className="muted">{formatDate(playoffs ? PLAYOFF_DATE : s.date)}</span>
-      </h2>
       {!user && (
         <button className="btn signprompt" onClick={() => { onSignIn(); window.scrollTo(0, 0); }}>
           Sign in to enter scores
         </button>
       )}
       <section className="card">
+        <h2 className="date">{playoffs ? `Playoffs · ${formatDate(PLAYOFF_DATE)}` : formatDate(s.date)}</h2>
         {matches.map((m) => (
           <MatchRow key={m.id} m={m} result={results[m.id]} store={store} user={user} isAdmin={isAdmin} />
         ))}

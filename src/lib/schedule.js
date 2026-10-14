@@ -17,7 +17,8 @@ const NIGHTS = [
   { date: "2027-04-09", matches: [[0, 3], [1, 5], [2, 4], [3, 1], [5, 2], [4, 0]] },
 ];
 
-export const PLAYOFF_DATE = "2027-05-07";
+export let PLAYOFF_DATE = "2027-05-07";
+export const setPlayoffDate = (d) => { PLAYOFF_DATE = d; };
 
 export const SESSIONS = NIGHTS.map((night, i) => ({
   n: i + 1,
