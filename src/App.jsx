@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SignIn from "./views/SignIn.jsx";
 import { useLeague } from "./useLeague.js";
 import Schedule from "./views/Schedule.jsx";
@@ -24,6 +24,12 @@ export default function App() {
   const [signingIn, setSigningIn] = useState(false);
   const tabs = league.isAdmin ? [...TABS, ADMIN_TAB] : TABS;
   const shown = tab === "admin" && !league.isAdmin ? "schedule" : tab;
+  useEffect(() => {
+    if (!signingIn) return;
+    const onKey = (e) => e.key === "Escape" && setSigningIn(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [signingIn]);
   const go = (k) => { setTab(k); history.replaceState(null, "", `#${k}`); };
 
   if (league.error) return <p className="boot">{league.error}</p>;
@@ -38,11 +44,15 @@ export default function App() {
             {league.isAdmin ? "Admin · Sign out" : "Sign out"}
           </button>
         ) : (
-          <button className="link" onClick={() => setSigningIn((v) => !v)}>Sign in</button>
+          <button className="link" onClick={() => setSigningIn(true)}>Sign in</button>
         )}
       </header>
       {signingIn && !league.user && (
-        <SignIn store={league.store} onDone={() => setSigningIn(false)} />
+        <div className="modal" onClick={() => setSigningIn(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Sign in" onClick={(e) => e.stopPropagation()}>
+            <SignIn store={league.store} onDone={() => setSigningIn(false)} />
+          </div>
+        </div>
       )}
       <main className="page">
         {shown === "schedule" && <Schedule {...league} />}

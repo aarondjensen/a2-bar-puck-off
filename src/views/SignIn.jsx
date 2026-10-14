@@ -21,7 +21,7 @@ export default function SignIn({ store, onDone }) {
 
   return (
     <form className="card signin" onSubmit={submit}>
-      <input type="email" autoComplete="username" placeholder="Email" value={email}
+      <input type="email" autoFocus autoComplete="username" placeholder="Email" value={email}
         onChange={(e) => { setEmail(e.target.value); setError(null); }} />
       <input type="password" autoComplete={creating ? "new-password" : "current-password"}
         placeholder="Password" value={password}
