@@ -30,6 +30,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Team names, players and session dates. Everybody reads; only an admin writes, and
+    // only the one document, in the shape the app saves. Team ids and matchups are not
+    // stored here: they are fixed in the app so scores stay attached to the right teams.
+    match /config/league {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['teams', 'dates', 'playoff', 'by', 'at'])
+        && request.resource.data.teams is list && request.resource.data.teams.size() == 6
+        && request.resource.data.dates is list && request.resource.data.dates.size() == 5
+        && request.resource.data.playoff is string;
+    }
+
     // The admin's own membership document. Created by hand in the console.
     match /admins/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;

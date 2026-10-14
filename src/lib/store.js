@@ -5,6 +5,7 @@
 //
 // store = { mode, subscribe(cb), onAuth(cb), submit(id, result), override(id, result),
 //           clear(id), signIn(email, pw), signUp(email, pw), signInGoogle(), signOut() }
+// subscribeConfig(cb) calls back with the director's saved config or null; saveConfig(cfg) is admin-only.
 // onAuth calls back with { user: { uid, email } | null, isAdmin }.
 // submit never overwrites: a second submit for a match that has a result is refused.
 // override and clear are admin-only, and so is every write by someone not signed in;
@@ -33,6 +34,8 @@ const SIGN_IN_FIRST = "Sign in to enter scores";
 function createLocalStore() {
   const KEY = "sbl_results";
   const USER = "sbl_user";
+  const CONFIG = "sbl_config";
+  const cfgSubs = new Set();
   const get = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
   const put = (k, v) => {
     try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ }
@@ -71,6 +74,17 @@ function createLocalStore() {
       delete all[id];
       put(KEY, all);
       emit();
+      return { ok: true };
+    },
+    subscribeConfig(cb) {
+      const f = () => cb(get(CONFIG));
+      cfgSubs.add(f); f();
+      return () => cfgSubs.delete(f);
+    },
+    async saveConfig(cfg) {
+      if (!session().isAdmin) return { ok: false, error: "Admin only" };
+      put(CONFIG, cfg);
+      cfgSubs.forEach((f) => f());
       return { ok: true };
     },
     async signIn(email) { return login(email, false); },
@@ -128,6 +142,20 @@ async function createFirebaseStore() {
       return fs.onSnapshot(fs.collection(db, "results"), (snap) => {
         cb(Object.fromEntries(snap.docs.map((d) => [d.id, d.data()])));
       });
+    },
+    subscribeConfig(cb) {
+      return fs.onSnapshot(fs.doc(db, "config", "league"), (snap) => cb(snap.exists() ? snap.data() : null));
+    },
+    async saveConfig(cfg) {
+      try {
+        await fs.setDoc(fs.doc(db, "config", "league"), {
+          teams: cfg.teams, dates: cfg.dates, playoff: cfg.playoff,
+          by: auth.currentUser?.uid, at: fs.serverTimestamp(),
+        });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: failure(e, "Admin only") };
+      }
     },
     async submit(id, result) {
       try {

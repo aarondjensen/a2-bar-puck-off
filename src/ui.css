@@ -23,8 +23,11 @@ button { font: inherit; color: inherit; }
 .page { flex: 1; padding: 8px 16px 90px; max-width: 640px; width: 100%; margin: 0 auto; }
 .tabs { position: fixed; left: 50%; transform: translateX(-50%); width: 100%; max-width: 640px; bottom: 0; display: flex; background: var(--card);
   border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
-.tabs button { flex: 1; padding: 14px 4px; background: none; border: 0; color: var(--muted); font-weight: 600; }
-.tabs button.on { color: var(--accent); }
+.tabs button { position: relative; flex: 1; padding: 14px 4px; background: none; border: 0; color: var(--muted); font-weight: 600; }
+.tabs button.on { color: var(--text); font-weight: 800;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.tabs button.on::before { content: ""; position: absolute; top: 0; left: 18%; right: 18%; height: 3px;
+  border-radius: 0 0 3px 3px; background: var(--accent); }
 .link { background: none; border: 0; color: var(--accent); padding: 6px 0; font-size: 14px; cursor: pointer; }
 .muted { color: var(--muted); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px; margin: 10px 0; }
@@ -36,16 +39,16 @@ button { font: inherit; color: inherit; }
 .team { font-weight: 600; }
 .right { text-align: right; }
 .vs { color: var(--muted); font-size: 13px; align-self: center; }
-.chips { display: flex; gap: 6px; padding: 8px 0 0; overflow-x: auto; }
+.chips { display: flex; gap: 4px; padding: 8px 0 0; overflow-x: auto; }
+.chips button { flex: 1; white-space: nowrap; }
 .chips button { background: var(--card); border: 1px solid var(--line); border-radius: 999px;
-  padding: 8px 14px; min-width: 42px; font-weight: 600; }
+  padding: 8px 2px; min-width: 0; font-weight: 600; font-size: 13px; }
 .chips button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .match { padding: 12px 0; border-top: 1px solid var(--line); }
 .match:first-child { border-top: 0; }
 .match.dim { opacity: .45; }
-.matchhead { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 8px; align-items: center; }
-.matchhead .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
-.matchhead .team:first-of-type:not(.tag + .team) { grid-column: 1 / 2; }
+.matchhead { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+.matchhead .tag { grid-column: 1 / -1; justify-self: center; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
 .final { display: flex; gap: 10px; align-items: baseline; justify-content: center; font-size: 22px;
   font-weight: 700; padding-top: 6px; }
 .final .link { margin-left: 12px; font-size: 14px; font-weight: 500; }
@@ -87,3 +90,10 @@ button { font: inherit; color: inherit; }
 .card h2.date { justify-content: center; }
 .row .vs { min-width: 3.2em; text-align: center; }
 @media (min-width: 672px) { .tabs { border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; } }
+.field { font-size: 16px; padding: 10px; width: 100%; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; }
+.card.form { display: grid; gap: 8px; padding: 12px 14px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dateline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dateline input { font-size: 16px; padding: 8px 10px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; color-scheme: dark light; }
