@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AdminSignIn from "./views/AdminSignIn.jsx";
 import { useLeague } from "./useLeague.js";
 import Schedule from "./views/Schedule.jsx";
 import Scores from "./views/Scores.jsx";
@@ -18,6 +19,7 @@ export default function App() {
     const h = location.hash.slice(1);
     return TABS.some(([k]) => k === h) ? h : "schedule";
   });
+  const [signingIn, setSigningIn] = useState(false);
   const go = (k) => { setTab(k); history.replaceState(null, "", `#${k}`); };
 
   if (league.error) return <p className="boot">{league.error}</p>;
@@ -30,9 +32,12 @@ export default function App() {
         {league.isAdmin ? (
           <button className="link" onClick={() => league.store.signOut()}>Admin · Sign out</button>
         ) : (
-          <button className="link" onClick={() => league.store.signIn().catch(() => {})}>Admin</button>
+          <button className="link" onClick={() => (league.store.mode === "local" ? league.store.signIn() : setSigningIn((v) => !v))}>Admin</button>
         )}
       </header>
+      {signingIn && !league.isAdmin && (
+        <AdminSignIn store={league.store} onDone={() => setSigningIn(false)} />
+      )}
       <main className="page">
         {tab === "schedule" && <Schedule />}
         {tab === "scores" && <Scores {...league} />}

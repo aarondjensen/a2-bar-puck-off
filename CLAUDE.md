@@ -23,7 +23,7 @@ Vite + React, Firestore for shared results, Vercel for hosting. Code is written 
   data; `schedule.test.js` proves those rules, so re-run it before touching the table.
 - Matches go to 21 and need only a final score. **Anyone may submit; only the admin may
   change or remove one after.** That is enforced by `firestore.rules` (create for anyone,
-  update/delete for `admins/{uid}`), not by the UI. Admin signs in with Google.
+  update/delete for `admins/{uid}`), not by the UI. Admin signs in with email and password (Firebase Auth; no Google or Apple).
 - Standings: wins, then fewest losses, then point differential over completed matches;
   still level → points scored → schedule order (TJ didn't specify beyond differential).
 - Playoffs: seeds 1-6 read live from the standings, 1 and 2 on a bye, double elimination
@@ -37,5 +37,5 @@ Vite + React, Firestore for shared results, Vercel for hosting. Code is written 
 With no `VITE_FIREBASE_*` set the app uses browser localStorage, where "Admin" is just a
 switch. That is for development only; nothing is shared between phones. Set all four vars
 (`.env.example`) to use Firestore. Use a scratch project for development, never the live one.
-The first admin is a hand-made `admins/{uid}` document in the console. Deploy the app
+Admin accounts are made by hand: Authentication → Users → Add user, then an `admins/{uid}` document with that uid. There is no sign-up screen. Deploy the app
 first and `firestore.rules` second.

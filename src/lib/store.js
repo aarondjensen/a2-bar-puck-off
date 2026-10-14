@@ -4,7 +4,7 @@
 // shared between phones, and "Admin" there is a switch, not a check.
 //
 // store = { subscribe(cb), submit(id, result), override(id, result), clear(id),
-//           onAdmin(cb), signIn(), signOut(), mode }
+//           onAdmin(cb), signIn(email, password), signOut(), mode }
 // submit never overwrites: a second submit for a match that has a result is refused.
 // override and clear are admin-only (enforced by firestore.rules, not by the UI).
 
@@ -62,7 +62,7 @@ function createLocalStore() {
       return { ok: true };
     },
     onAdmin(cb) { admins.add(cb); cb(isAdmin()); return () => admins.delete(cb); },
-    async signIn() { try { localStorage.setItem(ADMIN, "1"); } catch { /* ignore */ } emitAdmin(); },
+    async signIn() { try { localStorage.setItem(ADMIN, "1"); } catch { /* ignore */ } emitAdmin(); return { ok: true }; },
     async signOut() { try { localStorage.removeItem(ADMIN); } catch { /* ignore */ } emitAdmin(); },
   };
 }
@@ -135,7 +135,15 @@ async function createFirebaseStore() {
       });
       return () => { alive = false; off(); };
     },
-    async signIn() { await au.signInWithPopup(auth, new au.GoogleAuthProvider()); },
+    async signIn(email, password) {
+      try {
+        await au.signInWithEmailAndPassword(auth, email, password);
+        return { ok: true };
+      } catch (e) {
+        const bad = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"];
+        return { ok: false, error: bad.includes(e?.code) ? "Wrong email or password" : "Could not sign in. Check your connection." };
+      }
+    },
     async signOut() { await au.signOut(auth); },
   };
 }
