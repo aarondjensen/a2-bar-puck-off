@@ -107,3 +107,7 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
 .modal { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-start; justify-content: center;
   padding: max(110px, env(safe-area-inset-top)) 16px 16px; background: rgba(0,0,0,.55); }
 .modal > div { width: 100%; max-width: 400px; }
+.gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px 12px;
+  background: #fff; color: #1f1f1f; border: 1px solid #747775; border-radius: 10px;
+  font-weight: 600; font-size: 15px; cursor: pointer; }
+.gbtn:disabled { opacity: .6; }
