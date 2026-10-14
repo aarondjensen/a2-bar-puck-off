@@ -3,18 +3,17 @@ import { teamById } from "../lib/teams.js";
 import { formatDate } from "../lib/dates.js";
 import { scoreFor, resultFits } from "../lib/scoring.js";
 
-const done = (s, results) =>
-  s.matches.every((m) => resultFits(results[m.id], m.a, m.b));
-
-function Session({ s, results, scored, collapsed }) {
+// Scores show on a match as soon as it has one, so a week waiting to be finalized is readable.
+function Session({ s, results, collapsed }) {
   const rows = s.matches.map((m, i) => {
     const r = results[m.id];
-    const a = scoreFor(r, m.a), b = scoreFor(r, m.b);
+    const played = resultFits(r, m.a, m.b);
+    const a = played ? scoreFor(r, m.a) : null, b = played ? scoreFor(r, m.b) : null;
     return (
       <div key={m.id} className={`row ${i === 3 ? "gap" : ""}`}>
-        <span className={`team ${scored && a > b ? "win" : ""}`}>{teamById(m.a).name}</span>
-        <span className="vs">{scored ? `${a}–${b}` : "vs"}</span>
-        <span className={`team right ${scored && b > a ? "win" : ""}`}>{teamById(m.b).name}</span>
+        <span className={`team ${played && a > b ? "win" : ""}`}>{teamById(m.a).name}</span>
+        <span className="vs">{played ? `${a}–${b}` : "vs"}</span>
+        <span className={`team right ${played && b > a ? "win" : ""}`}>{teamById(m.b).name}</span>
       </div>
     );
   });
@@ -34,9 +33,9 @@ function Session({ s, results, scored, collapsed }) {
   );
 }
 
-export default function Schedule({ results }) {
-  const past = SESSIONS.filter((s) => done(s, results));
-  const rest = SESSIONS.filter((s) => !done(s, results));
+export default function Schedule({ results, finalized }) {
+  const past = SESSIONS.filter((s) => finalized.has(s.n));
+  const rest = SESSIONS.filter((s) => !finalized.has(s.n));
   const [next, ...upcoming] = rest;
   const playoffs = (
     <section className="card">
@@ -58,7 +57,7 @@ export default function Schedule({ results }) {
       {past.length > 0 && (
         <>
           <h3 className="sub">Completed</h3>
-          {[...past].reverse().map((s) => <Session key={s.n} s={s} results={results} scored collapsed />)}
+          {[...past].reverse().map((s) => <Session key={s.n} s={s} results={results} collapsed />)}
         </>
       )}
     </>

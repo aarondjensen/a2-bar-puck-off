@@ -6,6 +6,7 @@ import Scores from "./views/Scores.jsx";
 import Standings from "./views/Standings.jsx";
 import Playoffs from "./views/Playoffs.jsx";
 import Admin from "./views/Admin.jsx";
+import FinalizePrompt from "./views/FinalizePrompt.jsx";
 
 const TABS = [
   ["schedule", "Schedule"],
@@ -54,6 +55,7 @@ export default function App() {
           </div>
         </div>
       )}
+      {league.isAdmin && league.pendingWeek && <FinalizePrompt week={league.pendingWeek} store={league.store} />}
       <main className="page">
         {shown === "schedule" && <Schedule {...league} />}
         {shown === "scores" && <Scores {...league} onSignIn={() => setSigningIn(true)} />}

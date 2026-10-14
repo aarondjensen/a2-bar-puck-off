@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { currentConfig, toStored, validateConfig } from "../lib/config.js";
 import { SESSIONS } from "../lib/schedule.js";
+import { formatDate } from "../lib/dates.js";
 
-export default function Admin({ store, isAdmin }) {
+export default function Admin({ store, isAdmin, finalized }) {
   const [cfg, setCfg] = useState(currentConfig);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -41,8 +42,23 @@ export default function Admin({ store, isAdmin }) {
 
   const sorted = [...members].sort((a, b) => a.email.localeCompare(b.email));
 
+  const weeks = SESSIONS.filter((x) => finalized.has(x.n));
+
   return (
     <>
+      {weeks.length > 0 && (
+        <>
+          <h3 className="sub">Finalized weeks</h3>
+          <section className="card">
+            {weeks.map((w) => (
+              <div key={w.n} className="memberrow">
+                <span>{formatDate(w.date)}</span>
+                <button className="link" onClick={() => store.reopenWeek(w.n)}>Reopen</button>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
       <h3 className="sub">Members</h3>
       <section className="card">
         {sorted.length === 0 && <p className="muted center">No members yet</p>}
