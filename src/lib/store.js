@@ -7,7 +7,7 @@
 //           clear(id), signIn(email, pw), signUp(email, pw), signInGoogle(), signOut() }
 // subscribeConfig(cb) calls back with the director's saved config or null; saveConfig(cfg) is admin-only.
 // join(code) makes the signed-in user a league member when the code is right; saveCode(code) and
-// getCode() are admin-only. Only members and admins may submit a score.
+// getCode(), subscribeMembers(cb) and removeMember(uid) are admin-only. Only members and admins may submit a score.
 // onAuth calls back with { user: { uid, email } | null, isAdmin, isMember }.
 // submit never overwrites: a second submit for a match that has a result is refused.
 // override and clear are admin-only, and so is every write by someone not signed in;
@@ -40,6 +40,9 @@ function createLocalStore() {
   const USER = "sbl_user";
   const CONFIG = "sbl_config";
   const CODE = "sbl_code";
+  const MEMBERS = "sbl_members";
+  const memSubs = new Set();
+  const members = () => get(MEMBERS) || {};
   const cfgSubs = new Set();
   const get = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
   const put = (k, v) => {
@@ -52,7 +55,7 @@ function createLocalStore() {
   const session = () => {
     const u = get(USER);
     return u
-      ? { user: { uid: u.uid, email: u.email }, isAdmin: !!u.admin, isMember: !!u.member || !!u.admin }
+      ? { user: { uid: u.uid, email: u.email }, isAdmin: !!u.admin, isMember: !!members()[u.uid] || !!u.admin }
       : { user: null, isAdmin: false, isMember: false };
   };
   const emitAuth = () => auths.forEach((cb) => cb(session()));
@@ -88,7 +91,22 @@ function createLocalStore() {
       const u = get(USER);
       if (!u) return { ok: false, error: SIGN_IN_FIRST };
       if (String(code).trim() !== (get(CODE) || "puck")) return { ok: false, error: WRONG_CODE };
-      put(USER, { ...u, member: true });
+      put(MEMBERS, { ...members(), [u.uid]: { email: u.email } });
+      memSubs.forEach((f) => f());
+      emitAuth();
+      return { ok: true };
+    },
+    subscribeMembers(cb) {
+      const f = () => cb(Object.entries(members()).map(([uid, m]) => ({ uid, email: m.email })));
+      memSubs.add(f); f();
+      return () => memSubs.delete(f);
+    },
+    async removeMember(uid) {
+      if (!session().isAdmin) return { ok: false, error: "Admin only" };
+      const all = members();
+      delete all[uid];
+      put(MEMBERS, all);
+      memSubs.forEach((f) => f());
       emitAuth();
       return { ok: true };
     },
@@ -211,12 +229,25 @@ async function createFirebaseStore() {
       if (!u) return { ok: false, error: SIGN_IN_FIRST };
       try {
         // Rules compare the code with the secret one; a wrong code is refused there.
-        await fs.setDoc(fs.doc(db, "members", u.uid), { code: String(code).trim(), at: fs.serverTimestamp() });
+        await fs.setDoc(fs.doc(db, "members", u.uid), { code: String(code).trim(), email: u.email, at: fs.serverTimestamp() });
       } catch (e) {
         return { ok: false, error: failure(e, WRONG_CODE) };
       }
       await Promise.all([...authRuns].map((f) => f()));
       return { ok: true };
+    },
+    subscribeMembers(cb) {
+      return fs.onSnapshot(fs.collection(db, "members"), (snap) => {
+        cb(snap.docs.map((d) => ({ uid: d.id, email: d.data().email || "" })));
+      }, () => cb([]));
+    },
+    async removeMember(uid) {
+      try {
+        await fs.deleteDoc(fs.doc(db, "members", uid));
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: failure(e, "Admin only") };
+      }
     },
     async getCode() {
       try {

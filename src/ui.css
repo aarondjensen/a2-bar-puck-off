@@ -111,3 +111,10 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
   background: #fff; color: #1f1f1f; border: 1px solid #747775; border-radius: 10px;
   font-weight: 600; font-size: 15px; cursor: pointer; }
 .gbtn:disabled { opacity: .6; }
+.memberrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0;
+  border-top: 1px solid var(--line); }
+.memberrow:first-child { border-top: 0; }
+.memberrow .mail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memberrow .rm { display: flex; gap: 14px; }
+.link.danger { color: var(--danger); font-weight: 700; }
+.center { text-align: center; }
