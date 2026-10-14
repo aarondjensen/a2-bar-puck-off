@@ -33,6 +33,16 @@ function Match({ m, seedOf }) {
   );
 }
 
+// Rounds run down the page, not across it, so the bracket never scrolls sideways.
+function Rounds({ rounds, finalName, seedOf }) {
+  return rounds.map((r, i) => (
+    <div key={i}>
+      <h3 className="round">{i === rounds.length - 1 ? finalName : `Round ${i + 1}`}</h3>
+      <div className="matches">{r.map((m) => <Match key={m.id} m={m} seedOf={seedOf} />)}</div>
+    </div>
+  ));
+}
+
 export default function Playoffs({ bracket, standings }) {
   const seedOf = (id) => standings.find((r) => r.id === id)?.seed;
   const by = (side) => bracket.matches.filter((m) => m.side === side);
@@ -52,22 +62,12 @@ export default function Playoffs({ bracket, standings }) {
       )}
       <p className="muted center rule">Double elimination: two losses and a team is out</p>
       <h2 className="sub"><span>Winners</span></h2>
-      <div className="bracket">
-        {rounds("winners").map((r, i) => (
-          <div key={i} className="col">{r.map((m) => <Match key={m.id} m={m} seedOf={seedOf} />)}</div>
-        ))}
-      </div>
+      <Rounds side="winners" rounds={rounds("winners")} finalName="Winners final" seedOf={seedOf} />
       <h2 className="sub"><span>Losers</span></h2>
-      <div className="bracket">
-        {rounds("losers").map((r, i) => (
-          <div key={i} className="col">{r.map((m) => <Match key={m.id} m={m} seedOf={seedOf} />)}</div>
-        ))}
-      </div>
+      <Rounds side="losers" rounds={rounds("losers")} finalName="Losers final" seedOf={seedOf} />
       <h2 className="sub"><span>Final</span></h2>
-      <div className="bracket">
-        {by("final").filter((m) => !m.reset || m.needed).map((m) => (
-          <div key={m.id} className="col"><Match m={m} seedOf={seedOf} /></div>
-        ))}
+      <div className="matches">
+        {by("final").filter((m) => !m.reset || m.needed).map((m) => <Match key={m.id} m={m} seedOf={seedOf} />)}
       </div>
     </>
   );
