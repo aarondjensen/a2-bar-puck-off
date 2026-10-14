@@ -176,6 +176,9 @@ async function createFirebaseStore() {
   });
   const db = fs.getFirestore(app);
   const authRuns = new Set();
+  const weekSubs = new Set();
+  let weeksNow = new Set();
+  const emitWeeks = () => weekSubs.forEach((f) => f(new Set(weeksNow)));
   const auth = au.getAuth(app);
 
   // A refused write is reported, never swallowed: the form must not look saved when it is not.
@@ -265,13 +268,30 @@ async function createFirebaseStore() {
       return { ok: true };
     },
     subscribeWeeks(cb) {
-      return fs.onSnapshot(fs.collection(db, "weeks"), (snap) => {
-        cb(new Set(snap.docs.map((d) => d.data().n)));
-      }, () => cb(new Set()));
+      // A Firestore listener that errors is dead for good, so retry it. Writes below also update
+      // the local set at once, so the screen never waits on the listener to show a change.
+      let off = null;
+      let timer = null;
+      let stopped = false;
+      const start = () => {
+        off = fs.onSnapshot(fs.collection(db, "weeks"), (snap) => {
+          weeksNow = new Set(snap.docs.map((d) => d.data().n));
+          emitWeeks();
+        }, () => {
+          off = null;
+          if (!stopped) timer = setTimeout(start, 5000);
+        });
+      };
+      weekSubs.add(cb);
+      cb(new Set(weeksNow));
+      start();
+      return () => { stopped = true; clearTimeout(timer); weekSubs.delete(cb); off?.(); };
     },
     async finalizeWeek(n) {
       try {
         await fs.setDoc(fs.doc(db, "weeks", `s${n}`), { n, by: auth.currentUser?.uid, at: fs.serverTimestamp() });
+        weeksNow.add(n);
+        emitWeeks();
         return { ok: true };
       } catch (e) {
         return { ok: false, error: failure(e, "Admin only") };
@@ -280,6 +300,8 @@ async function createFirebaseStore() {
     async reopenWeek(n) {
       try {
         await fs.deleteDoc(fs.doc(db, "weeks", `s${n}`));
+        weeksNow.delete(n);
+        emitWeeks();
         return { ok: true };
       } catch (e) {
         return { ok: false, error: failure(e, "Admin only") };

@@ -43,6 +43,11 @@ export default function Admin({ store, isAdmin, finalized }) {
   const sorted = [...members].sort((a, b) => a.email.localeCompare(b.email));
 
   const weeks = SESSIONS.filter((x) => finalized.has(x.n));
+  const [weekErr, setWeekErr] = useState(null);
+  async function reopen(n) {
+    const r = await store.reopenWeek(n);
+    setWeekErr(r.ok ? null : r.error);
+  }
 
   return (
     <>
@@ -53,9 +58,10 @@ export default function Admin({ store, isAdmin, finalized }) {
             {weeks.map((w) => (
               <div key={w.n} className="memberrow">
                 <span>{formatDate(w.date)}</span>
-                <button className="link" onClick={() => store.reopenWeek(w.n)}>Reopen</button>
+                <button className="link" onClick={() => reopen(w.n)}>Reopen</button>
               </div>
             ))}
+            {weekErr && <p className="err">{weekErr}</p>}
           </section>
         </>
       )}
