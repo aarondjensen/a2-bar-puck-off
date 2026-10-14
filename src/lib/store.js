@@ -5,6 +5,8 @@
 //
 // store = { mode, subscribe(cb), onAuth(cb), submit(id, result), override(id, result),
 //           clear(id), signIn(email, pw), signUp(email, pw), signInGoogle(), signOut() }
+// subscribeWeeks(cb) calls back with the Set of finalized session numbers; finalizeWeek(n) and
+// reopenWeek(n) are admin-only. Standings count only finalized weeks.
 // subscribeConfig(cb) calls back with the director's saved config or null; saveConfig(cfg) is admin-only.
 // resetPassword(email) sends a reset link; it reports success whether or not the email has an account.
 // join(code) makes the signed-in user a league member when the code is right; saveCode(code) and
@@ -42,6 +44,15 @@ function createLocalStore() {
   const CONFIG = "sbl_config";
   const CODE = "sbl_code";
   const MEMBERS = "sbl_members";
+  const WEEKS = "sbl_weeks";
+  const weekSubs = new Set();
+  const weeks = () => new Set(Object.keys(get(WEEKS) || {}).map(Number));
+  const setWeek = (n, on) => {
+    const all = get(WEEKS) || {};
+    if (on) all[n] = true; else delete all[n];
+    put(WEEKS, all);
+    weekSubs.forEach((f) => f());
+  };
   const memSubs = new Set();
   const members = () => get(MEMBERS) || {};
   const cfgSubs = new Set();
@@ -95,6 +106,21 @@ function createLocalStore() {
       put(MEMBERS, { ...members(), [u.uid]: { email: u.email } });
       memSubs.forEach((f) => f());
       emitAuth();
+      return { ok: true };
+    },
+    subscribeWeeks(cb) {
+      const f = () => cb(weeks());
+      weekSubs.add(f); f();
+      return () => weekSubs.delete(f);
+    },
+    async finalizeWeek(n) {
+      if (!session().isAdmin) return { ok: false, error: "Admin only" };
+      setWeek(n, true);
+      return { ok: true };
+    },
+    async reopenWeek(n) {
+      if (!session().isAdmin) return { ok: false, error: "Admin only" };
+      setWeek(n, false);
       return { ok: true };
     },
     subscribeMembers(cb) {
@@ -237,6 +263,27 @@ async function createFirebaseStore() {
       }
       await Promise.all([...authRuns].map((f) => f()));
       return { ok: true };
+    },
+    subscribeWeeks(cb) {
+      return fs.onSnapshot(fs.collection(db, "weeks"), (snap) => {
+        cb(new Set(snap.docs.map((d) => d.data().n)));
+      }, () => cb(new Set()));
+    },
+    async finalizeWeek(n) {
+      try {
+        await fs.setDoc(fs.doc(db, "weeks", `s${n}`), { n, by: auth.currentUser?.uid, at: fs.serverTimestamp() });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: failure(e, "Admin only") };
+      }
+    },
+    async reopenWeek(n) {
+      try {
+        await fs.deleteDoc(fs.doc(db, "weeks", `s${n}`));
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: failure(e, "Admin only") };
+      }
     },
     subscribeMembers(cb) {
       return fs.onSnapshot(fs.collection(db, "members"), (snap) => {

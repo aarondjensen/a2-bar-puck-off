@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createStore } from "./lib/store.js";
 import { computeStandings } from "./lib/standings.js";
+import { SESSIONS } from "./lib/schedule.js";
+import { resultFits } from "./lib/scoring.js";
 import { resolveBracket } from "./lib/bracket.js";
 import { applyConfig } from "./lib/config.js";
 
@@ -9,6 +11,7 @@ export function useLeague() {
   const [results, setResults] = useState({});
   const [auth, setAuth] = useState({ user: null, isAdmin: false, isMember: false });
   const [config, setConfig] = useState(null);
+  const [finalized, setFinalized] = useState(() => new Set());
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -21,6 +24,7 @@ export function useLeague() {
         off = [
           s.subscribe(setResults),
           s.onAuth(setAuth),
+          s.subscribeWeeks(setFinalized),
           // Applied in place before the state change so the re-render reads the new names and dates.
           s.subscribeConfig((c) => { applyConfig(c); setConfig(c); }),
         ];
@@ -29,10 +33,19 @@ export function useLeague() {
     return () => { alive = false; off.forEach((f) => f()); };
   }, []);
 
-  const standings = useMemo(() => computeStandings(results), [results]);
+  // Standings count only weeks the director has finalized.
+  const standings = useMemo(
+    () => computeStandings(results, SESSIONS.filter((s) => finalized.has(s.n)).flatMap((s) => s.matches)),
+    [results, finalized],
+  );
+  // The next week to finalize, once all six of its scores are in.
+  const pendingWeek = useMemo(() => {
+    const next = SESSIONS.find((s) => !finalized.has(s.n));
+    return next && next.matches.every((m) => resultFits(results[m.id], m.a, m.b)) ? next : null;
+  }, [results, finalized]);
   const bracket = useMemo(
     () => resolveBracket(standings.map((r) => r.id), results),
     [standings, results],
   );
-  return { store, results, config, user: auth.user, isAdmin: auth.isAdmin, isMember: auth.isMember, error, standings, bracket };
+  return { store, results, config, finalized, pendingWeek, user: auth.user, isAdmin: auth.isAdmin, isMember: auth.isMember, error, standings, bracket };
 }
