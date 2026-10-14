@@ -6,6 +6,7 @@
 // store = { mode, subscribe(cb), onAuth(cb), submit(id, result), override(id, result),
 //           clear(id), signIn(email, pw), signUp(email, pw), signInGoogle(), signOut() }
 // subscribeConfig(cb) calls back with the director's saved config or null; saveConfig(cfg) is admin-only.
+// resetPassword(email) sends a reset link; it reports success whether or not the email has an account.
 // join(code) makes the signed-in user a league member when the code is right; saveCode(code) and
 // getCode(), subscribeMembers(cb) and removeMember(uid) are admin-only. Only members and admins may submit a score.
 // onAuth calls back with { user: { uid, email } | null, isAdmin, isMember }.
@@ -129,6 +130,7 @@ function createLocalStore() {
     },
     async signIn(email) { return login(email, false); },
     async signUp(email) { return login(email, false); },
+    async resetPassword() { return { ok: true }; },
     async signInGoogle() { return login("admin@local", true); },
     async signOut() { put(USER, null); emitAuth(); },
   };
@@ -280,6 +282,15 @@ async function createFirebaseStore() {
     },
     signIn: (email, pw) => attempt(() => au.signInWithEmailAndPassword(auth, email, pw)),
     signUp: (email, pw) => attempt(() => au.createUserWithEmailAndPassword(auth, email, pw)),
+    async resetPassword(email) {
+      try {
+        await au.sendPasswordResetEmail(auth, email);
+        return { ok: true };
+      } catch (e) {
+        if (e?.code === "auth/user-not-found") return { ok: true };
+        return { ok: false, error: authError(e) };
+      }
+    },
     signInGoogle: () => attempt(() => au.signInWithPopup(auth, new au.GoogleAuthProvider())),
     signOut: () => au.signOut(auth),
   };

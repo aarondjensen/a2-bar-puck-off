@@ -6,6 +6,15 @@ export default function SignIn({ store, onDone }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [sent, setSent] = useState(false);
+
+  async function forgot() {
+    if (!email.trim()) { setError("Enter your email first"); return; }
+    setBusy(true);
+    const r = await store.resetPassword(email.trim());
+    setBusy(false);
+    if (r.ok) { setSent(true); setError(null); } else setError(r.error);
+  }
 
   async function run(fn) {
     setBusy(true);
@@ -26,6 +35,10 @@ export default function SignIn({ store, onDone }) {
       <input type="password" autoComplete={creating ? "new-password" : "current-password"}
         placeholder="Password" value={password}
         onChange={(e) => { setPassword(e.target.value); setError(null); }} />
+      {!creating && (
+        <button type="button" className="link forgot" disabled={busy} onClick={forgot}>Forgot password?</button>
+      )}
+      {sent && <p className="warn">Check your email for a reset link.</p>}
       <button className="btn" disabled={busy || !email || !password}>
         {creating ? "Create account" : "Sign in"}
       </button>
