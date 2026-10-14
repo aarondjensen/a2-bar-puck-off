@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { currentConfig, validateConfig } from "../lib/config.js";
+import { currentConfig, toStored, validateConfig } from "../lib/config.js";
+import { SESSIONS } from "../lib/schedule.js";
 
 export default function Admin({ store, isAdmin }) {
   const [cfg, setCfg] = useState(currentConfig);
@@ -21,10 +22,7 @@ export default function Admin({ store, isAdmin }) {
     const v = validateConfig(cfg);
     if (!v.ok) { setMsg({ err: v.error }); return; }
     setBusy(true);
-    const r = await store.saveConfig({
-      ...cfg,
-      teams: cfg.teams.map((t) => ({ id: t.id, name: t.name.trim(), players: t.players.map((p) => p.trim()) })),
-    });
+    const r = await store.saveConfig(toStored(cfg));
     setBusy(false);
     setMsg(r.ok ? { ok: "Saved" } : { err: r.error });
   }
@@ -86,16 +84,24 @@ export default function Admin({ store, isAdmin }) {
       ))}
       <h3 className="sub">Dates</h3>
       <section className="card form">
-        {cfg.dates.map((d, i) => (
-          <label key={i} className="dateline">
-            <span>Session {i + 1}</span>
-            <input type="date" value={d} onChange={(e) => edit((n) => { n.dates[i] = e.target.value; })} />
-          </label>
+        {cfg.weeks.map((w, i) => (
+          <div key={i} className="dateline">
+            <input type="date" value={w.date} onChange={(e) => edit((n) => { n.weeks[i].date = e.target.value; })} />
+            <button type="button" className={`kind ${w.kind}`}
+              onClick={() => edit((n) => { n.weeks[i].kind = w.kind === "regular" ? "playoffs" : "regular"; })}>
+              {w.kind === "regular" ? "Regular season" : "Playoffs"}
+            </button>
+            <button type="button" className="link danger" aria-label="Remove date"
+              onClick={() => edit((n) => { n.weeks.splice(i, 1); })}>✕</button>
+          </div>
         ))}
-        <label className="dateline">
-          <span>Playoffs</span>
-          <input type="date" value={cfg.playoff} onChange={(e) => edit((n) => { n.playoff = e.target.value; })} />
-        </label>
+        <button type="button" className="btn ghost" onClick={() => edit((n) => {
+          const last = n.weeks.map((x) => x.date).filter(Boolean).sort().pop();
+          const d = last ? new Date(`${last}T12:00:00Z`) : new Date();
+          if (last) d.setUTCDate(d.getUTCDate() + 7);
+          const regular = n.weeks.filter((x) => x.kind === "regular").length;
+          n.weeks.push({ date: d.toISOString().slice(0, 10), kind: regular < SESSIONS.length ? "regular" : "playoffs" });
+        })}>Add a date</button>
       </section>
       <button className="btn signprompt" disabled={busy} onClick={save}>Save</button>
       {msg?.err && <p className="err">{msg.err}</p>}

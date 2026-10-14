@@ -17,8 +17,9 @@ const NIGHTS = [
   { date: "2027-04-09", matches: [[0, 3], [1, 5], [2, 4], [3, 1], [5, 2], [4, 0]] },
 ];
 
-export let PLAYOFF_DATE = "2027-05-07";
-export const setPlayoffDate = (d) => { PLAYOFF_DATE = d; };
+// The playoff bracket is one event, but it may be played over more than one night.
+export let PLAYOFF_DATES = ["2027-05-07"];
+export const setPlayoffDates = (d) => { PLAYOFF_DATES = d; };
 
 export const SESSIONS = NIGHTS.map((night, i) => ({
   n: i + 1,

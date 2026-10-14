@@ -1,4 +1,4 @@
-import { SESSIONS, PLAYOFF_DATE } from "../lib/schedule.js";
+import { SESSIONS, PLAYOFF_DATES } from "../lib/schedule.js";
 import { teamById } from "../lib/teams.js";
 import { formatDate } from "../lib/dates.js";
 import { scoreFor, resultFits } from "../lib/scoring.js";
@@ -40,7 +40,7 @@ export default function Schedule({ results }) {
   const [next, ...upcoming] = rest;
   const playoffs = (
     <section className="card">
-      <h2 className="date">Playoffs · {formatDate(PLAYOFF_DATE)}</h2>
+      <h2 className="date">Playoffs · {PLAYOFF_DATES.map(formatDate).join(", ")}</h2>
     </section>
   );
 
