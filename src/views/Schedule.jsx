@@ -9,7 +9,7 @@ const done = (s, results) =>
 function Session({ s, results, scored }) {
   return (
     <section className="card">
-      <h2><span>Session {s.n}</span><span className="muted">{formatDate(s.date)}</span></h2>
+      <h2 className="date">{formatDate(s.date)}</h2>
       {s.matches.map((m, i) => {
         const r = results[m.id];
         const a = scoreFor(r, m.a), b = scoreFor(r, m.b);
@@ -31,7 +31,7 @@ export default function Schedule({ results }) {
   const [next, ...upcoming] = rest;
   const playoffs = (
     <section className="card">
-      <h2><span>Playoffs</span><span className="muted">{formatDate(PLAYOFF_DATE)}</span></h2>
+      <h2 className="date">Playoffs · {formatDate(PLAYOFF_DATE)}</h2>
     </section>
   );
 
@@ -48,7 +48,7 @@ export default function Schedule({ results }) {
       )}
       {past.length > 0 && (
         <>
-          <h3 className="sub">Past</h3>
+          <h3 className="sub">Completed</h3>
           {[...past].reverse().map((s) => <Session key={s.n} s={s} results={results} scored />)}
         </>
       )}
