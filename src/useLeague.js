@@ -7,7 +7,7 @@ import { applyConfig } from "./lib/config.js";
 export function useLeague() {
   const [store, setStore] = useState(null);
   const [results, setResults] = useState({});
-  const [auth, setAuth] = useState({ user: null, isAdmin: false });
+  const [auth, setAuth] = useState({ user: null, isAdmin: false, isMember: false });
   const [config, setConfig] = useState(null);
   const [error, setError] = useState(null);
 
@@ -34,5 +34,5 @@ export function useLeague() {
     () => resolveBracket(standings.map((r) => r.id), results),
     [standings, results],
   );
-  return { store, results, config, user: auth.user, isAdmin: auth.isAdmin, error, standings, bracket };
+  return { store, results, config, user: auth.user, isAdmin: auth.isAdmin, isMember: auth.isMember, error, standings, bracket };
 }

@@ -7,6 +7,11 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function isMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid));
+    }
+
     // A final score: whole numbers, no tie, the winner at 21 or more.
     function validScore(d) {
       return d.keys().hasOnly(['a', 'b', 'scoreA', 'scoreB', 'by', 'at', 'edited'])
@@ -17,12 +22,12 @@ service cloud.firestore {
         && (d.scoreA >= 21 || d.scoreB >= 21);
     }
 
-    // Everybody reads. Anybody signed in may post a score for a match that has none
+    // Everybody reads. Any league member (or admin) may post a score for a match that has none
     // yet, under their own uid, and nobody but an admin may change or remove one
     // once it is there.
     match /results/{matchId} {
       allow read: if true;
-      allow create: if request.auth != null
+      allow create: if (isMember() || isAdmin())
         && validScore(request.resource.data)
         && request.resource.data.by == request.auth.uid
         && matchId.matches('^(s[1-5]-m[1-6]|p-(W[1-5]|L[1-4]|F[12]))$');
@@ -40,6 +45,24 @@ service cloud.firestore {
         && request.resource.data.teams is list && request.resource.data.teams.size() == 6
         && request.resource.data.dates is list && request.resource.data.dates.size() == 5
         && request.resource.data.playoff is string;
+    }
+
+    // League membership. A signed-in user joins by writing their own document with the
+    // league code; the rule compares it with secret/league, which only an admin can read
+    // or write (rules can read it even though clients can't). Members are never edited.
+    match /members/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['code', 'at'])
+        && request.resource.data.code is string
+        && request.resource.data.code == get(/databases/$(database)/documents/secret/league).data.code;
+      allow delete: if isAdmin();
+    }
+    match /secret/league {
+      allow read: if isAdmin();
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['code'])
+        && request.resource.data.code is string && request.resource.data.code.size() > 0;
     }
 
     // The admin's own membership document. Created by hand in the console.
