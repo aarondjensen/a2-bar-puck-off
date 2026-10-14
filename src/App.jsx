@@ -41,7 +41,7 @@ export default function App() {
         <h1 className="brand"><img className="logo" src="/logo.png" alt="A2 Bar Puck Off" /></h1>
         {league.user ? (
           <button className="link" onClick={() => league.store.signOut()}>
-            {league.isAdmin ? "Admin · Sign out" : "Sign out"}
+            Sign out
           </button>
         ) : (
           <button className="link" onClick={() => setSigningIn(true)}>Sign in</button>
