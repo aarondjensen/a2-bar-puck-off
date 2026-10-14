@@ -7,7 +7,11 @@ export default function Admin({ store, isAdmin }) {
   const [msg, setMsg] = useState(null);
   const [code, setCode] = useState("");
   const [codeMsg, setCodeMsg] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [removing, setRemoving] = useState(null);
+  const [memberErr, setMemberErr] = useState(null);
   useEffect(() => { if (isAdmin) store.getCode().then(setCode); }, [store, isAdmin]);
+  useEffect(() => (isAdmin ? store.subscribeMembers(setMembers) : undefined), [store, isAdmin]);
 
   if (!isAdmin) return <p className="muted">Admin only</p>;
 
@@ -31,8 +35,34 @@ export default function Admin({ store, isAdmin }) {
     setCodeMsg(r.ok ? { ok: "Saved" } : { err: r.error });
   }
 
+  async function remove(uid) {
+    const r = await store.removeMember(uid);
+    setRemoving(null);
+    setMemberErr(r.ok ? null : r.error);
+  }
+
+  const sorted = [...members].sort((a, b) => a.email.localeCompare(b.email));
+
   return (
     <>
+      <h3 className="sub">Members</h3>
+      <section className="card">
+        {sorted.length === 0 && <p className="muted center">No members yet</p>}
+        {sorted.map((m) => (
+          <div key={m.uid} className="memberrow">
+            <span className="mail">{m.email || m.uid}</span>
+            {removing === m.uid ? (
+              <span className="rm">
+                <button className="link danger" onClick={() => remove(m.uid)}>Remove</button>
+                <button className="link" onClick={() => setRemoving(null)}>Cancel</button>
+              </span>
+            ) : (
+              <button className="link" onClick={() => setRemoving(m.uid)}>Remove</button>
+            )}
+          </div>
+        ))}
+        {memberErr && <p className="err">{memberErr}</p>}
+      </section>
       <h3 className="sub">League code</h3>
       <section className="card form">
         <input className="field" aria-label="League code" autoCapitalize="none" autoCorrect="off" value={code}
