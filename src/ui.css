@@ -9,6 +9,7 @@
   }
 }
 * { box-sizing: border-box; }
+html { scrollbar-gutter: stable; }
 html, body { margin: 0; background: var(--bg); color: var(--text);
   font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 button { font: inherit; color: inherit; }
@@ -22,8 +23,9 @@ button { font: inherit; color: inherit; }
 .top .logo { height: 68px; width: auto; display: block; }
 .page { flex: 1; padding: 8px 16px 90px; max-width: 640px; width: 100%; margin: 0 auto; }
 .tabs { position: fixed; left: 50%; transform: translateX(-50%); width: 100%; max-width: 640px; bottom: 0; display: flex; background: var(--card);
-  border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
-.tabs button { position: relative; flex: 1; padding: 14px 4px; background: none; border: 0; color: var(--muted); font-weight: 600; }
+  border-top: 1px solid var(--line); gap: 2px;
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+.tabs button { position: relative; flex: 1; padding: 10px 4px; border-radius: 10px; background: none; border: 0; color: var(--muted); font-weight: 600; }
 .tabs button.on { color: var(--text); font-weight: 800;
   background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .tabs button.on::before { content: ""; position: absolute; top: 0; left: 18%; right: 18%; height: 3px;
