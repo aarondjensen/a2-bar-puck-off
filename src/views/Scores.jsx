@@ -33,7 +33,7 @@ export default function Scores({ store, results, user, isAdmin, bracket, onSignI
         <button className={playoffs ? "on" : ""} onClick={() => setSession(6)}>{formatDate(PLAYOFF_DATE)}</button>
       </div>
       {!user && (
-        <button className="btn signprompt" onClick={() => { onSignIn(); window.scrollTo(0, 0); }}>
+        <button className="btn signprompt" onClick={onSignIn}>
           Sign in to enter scores
         </button>
       )}

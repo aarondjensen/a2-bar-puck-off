@@ -83,10 +83,9 @@ button { font: inherit; color: inherit; }
 .slot .seedno { font-size: 11px; color: var(--muted); width: 14px; }
 .slot .pts { font-weight: 700; }
 .slot.won .name, .slot.won .pts { color: var(--win); }
-.signin { display: grid; gap: 10px; padding: 14px; max-width: 640px; margin: 8px 16px; }
+.signin { display: grid; gap: 10px; padding: 14px; margin: 0; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,.45); }
 .signin input { font-size: 16px; padding: 12px; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 8px; width: 100%; }
-@media (min-width: 672px) { .signin { margin: 8px auto; width: 100%; } }
 .signprompt { width: 100%; margin-top: 12px; }
 .row .team.win { color: var(--win); }
 .card h2.date { justify-content: center; }
@@ -105,3 +104,6 @@ details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary::after { content: ""; position: absolute; right: 4px; top: 50%; width: 8px; height: 8px;
   margin-top: -6px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform .15s; }
 details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+.modal { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-start; justify-content: center;
+  padding: max(110px, env(safe-area-inset-top)) 16px 16px; background: rgba(0,0,0,.55); }
+.modal > div { width: 100%; max-width: 400px; }
