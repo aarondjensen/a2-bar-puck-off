@@ -122,3 +122,9 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
 .dateline .kind { flex: 1; padding: 9px 8px; border-radius: 999px; border: 1px solid var(--line);
   background: none; font-weight: 600; font-size: 14px; cursor: pointer; }
 .dateline .kind.playoffs { background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: var(--accent); }
+/* On a phone a long team name wraps. Give every team cell two lines of height with the text
+   centered, so a row is the same height whether its names wrap or not. */
+@media (max-width: 520px) {
+  .row .team, .matchhead .team { display: flex; align-items: center; min-height: 2.7em; }
+  .row .team.right, .matchhead .team.right { justify-content: flex-end; text-align: right; }
+}
