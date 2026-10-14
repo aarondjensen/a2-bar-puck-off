@@ -21,9 +21,9 @@ Vite + React, Firestore for shared results, Vercel for hosting. Code is written 
   playoffs 5/7. Each team plays twice a session, never the same opponent twice in a night,
   and the first round robin finishes before the second starts. `lib/schedule.js` is fixed
   data; `schedule.test.js` proves those rules, so re-run it before touching the table.
-- Matches go to 21 and need only a final score. **Anyone may submit; only the admin may
+- Matches go to 21 and need only a final score. **Any signed-in user may submit; only an admin may
   change or remove one after.** That is enforced by `firestore.rules` (create for anyone,
-  update/delete for `admins/{uid}`), not by the UI. Admin signs in with email and password (Firebase Auth; no Google or Apple).
+  update/delete for `admins/{uid}`), not by the UI. Players sign in with email and password (self-serve "Create account"); TJ signs in with Google. No Apple. A score needs a signed-in user and records their uid in `by`.
 - Standings: wins, then fewest losses, then point differential over completed matches;
   still level → points scored → schedule order (TJ didn't specify beyond differential).
 - Playoffs: seeds 1-6 read live from the standings, 1 and 2 on a bye, double elimination
@@ -36,6 +36,6 @@ Vite + React, Firestore for shared results, Vercel for hosting. Code is written 
 
 With no `VITE_FIREBASE_*` set the app uses browser localStorage, where "Admin" is just a
 switch. That is for development only; nothing is shared between phones. Set all four vars
-(`.env.example`) to use Firestore. Use a scratch project for development, never the live one.
-Admin accounts are made by hand: Authentication → Users → Add user, then an `admins/{uid}` document with that uid. There is no sign-up screen. Deploy the app
+(`.env.example`) to use Firestore. There is no dev project: development runs in local mode, and the live config lives only in Vercel env vars, so a local server never writes to the live league unless someone copies it into `.env.local`.
+Admins are made by hand: sign in once, copy the uid from Authentication → Users, then create an `admins/{uid}` document. Deploy the app
 first and `firestore.rules` second.

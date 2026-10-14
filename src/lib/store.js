@@ -1,12 +1,14 @@
 // One interface, two backends. With VITE_FIREBASE_* set it talks to Firestore; without,
 // it keeps everything in this browser's localStorage so the app can be built and tried
 // with no project behind it. Local mode is a development convenience only: nothing is
-// shared between phones, and "Admin" there is a switch, not a check.
+// shared between phones, and "Google" there signs in as an admin without checking anything.
 //
-// store = { subscribe(cb), submit(id, result), override(id, result), clear(id),
-//           onAdmin(cb), signIn(email, password), signOut(), mode }
+// store = { mode, subscribe(cb), onAuth(cb), submit(id, result), override(id, result),
+//           clear(id), signIn(email, pw), signUp(email, pw), signInGoogle(), signOut() }
+// onAuth calls back with { user: { uid, email } | null, isAdmin }.
 // submit never overwrites: a second submit for a match that has a result is refused.
-// override and clear are admin-only (enforced by firestore.rules, not by the UI).
+// override and clear are admin-only, and so is every write by someone not signed in;
+// that is enforced by firestore.rules, not by the UI.
 
 const ENV = import.meta.env;
 const FIREBASE_KEYS = [
@@ -26,44 +28,55 @@ export async function createStore() {
 }
 
 const ALREADY = "Already submitted";
+const SIGN_IN_FIRST = "Sign in to enter scores";
 
 function createLocalStore() {
   const KEY = "sbl_results";
-  const ADMIN = "sbl_admin";
-  const read = () => {
-    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
+  const USER = "sbl_user";
+  const get = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+  const put = (k, v) => {
+    try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ }
   };
-  const write = (v) => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* private mode */ } };
+  const read = () => get(KEY) || {};
   const subs = new Set();
-  const admins = new Set();
+  const auths = new Set();
   const emit = () => subs.forEach((cb) => cb(read()));
-  const isAdmin = () => { try { return localStorage.getItem(ADMIN) === "1"; } catch { return false; } };
-  const emitAdmin = () => admins.forEach((cb) => cb(isAdmin()));
+  const session = () => {
+    const u = get(USER);
+    return u ? { user: { uid: u.uid, email: u.email }, isAdmin: !!u.admin } : { user: null, isAdmin: false };
+  };
+  const emitAuth = () => auths.forEach((cb) => cb(session()));
+  const login = (email, admin) => { put(USER, { uid: email, email, admin }); emitAuth(); return { ok: true }; };
+  const write = (id, result, extra = {}) => {
+    put(KEY, { ...read(), [id]: { ...result, by: session().user.uid, at: Date.now(), ...extra } });
+    emit();
+    return { ok: true };
+  };
   return {
     mode: "local",
     subscribe(cb) { subs.add(cb); cb(read()); return () => subs.delete(cb); },
+    onAuth(cb) { auths.add(cb); cb(session()); return () => auths.delete(cb); },
     async submit(id, result) {
-      const all = read();
-      if (all[id]) return { ok: false, error: ALREADY };
-      write({ ...all, [id]: { ...result, at: Date.now() } });
-      emit();
-      return { ok: true };
+      if (!session().user) return { ok: false, error: SIGN_IN_FIRST };
+      if (read()[id]) return { ok: false, error: ALREADY };
+      return write(id, result);
     },
     async override(id, result) {
-      write({ ...read(), [id]: { ...result, at: Date.now(), edited: true } });
-      emit();
-      return { ok: true };
+      if (!session().isAdmin) return { ok: false, error: "Admin only" };
+      return write(id, result, { edited: true });
     },
     async clear(id) {
+      if (!session().isAdmin) return { ok: false, error: "Admin only" };
       const all = read();
       delete all[id];
-      write(all);
+      put(KEY, all);
       emit();
       return { ok: true };
     },
-    onAdmin(cb) { admins.add(cb); cb(isAdmin()); return () => admins.delete(cb); },
-    async signIn() { try { localStorage.setItem(ADMIN, "1"); } catch { /* ignore */ } emitAdmin(); return { ok: true }; },
-    async signOut() { try { localStorage.removeItem(ADMIN); } catch { /* ignore */ } emitAdmin(); },
+    async signIn(email) { return login(email, false); },
+    async signUp(email) { return login(email, false); },
+    async signInGoogle() { return login("admin@local", true); },
+    async signOut() { put(USER, null); emitAuth(); },
   };
 }
 
@@ -83,9 +96,31 @@ async function createFirebaseStore() {
   const auth = au.getAuth(app);
 
   // A refused write is reported, never swallowed: the form must not look saved when it is not.
-  const failure = (e, fallback) =>
-    e?.code === "permission-denied" ? fallback : "Could not save. Check your connection.";
-  const stamp = (r) => ({ a: r.a, b: r.b, scoreA: r.scoreA, scoreB: r.scoreB });
+  const failure = (e, denied) =>
+    e?.code === "permission-denied" ? denied : "Could not save. Check your connection.";
+  const body = (r) => ({
+    a: r.a, b: r.b, scoreA: r.scoreA, scoreB: r.scoreB,
+    by: auth.currentUser?.uid, at: fs.serverTimestamp(),
+  });
+
+  const authError = (e) => {
+    switch (e?.code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+        return "Wrong email or password";
+      case "auth/invalid-email": return "Enter a valid email";
+      case "auth/email-already-in-use": return "That email already has an account";
+      case "auth/weak-password": return "Password needs at least 6 characters";
+      case "auth/too-many-requests": return "Too many tries. Wait a minute.";
+      case "auth/popup-closed-by-user":
+      case "auth/cancelled-popup-request": return null;
+      default: return "Could not sign in. Check your connection.";
+    }
+  };
+  const attempt = async (fn) => {
+    try { await fn(); return { ok: true }; } catch (e) { return { ok: false, error: authError(e) }; }
+  };
 
   return {
     mode: "firebase",
@@ -96,9 +131,9 @@ async function createFirebaseStore() {
     },
     async submit(id, result) {
       try {
-        // Rules allow create to anyone and update to the admin only, so this is
-        // refused for a match that already has a result.
-        await fs.setDoc(fs.doc(db, "results", id), { ...stamp(result), at: fs.serverTimestamp() });
+        // Rules allow create to a signed-in user and update to the admin only, so this
+        // is refused for a match that already has a result.
+        await fs.setDoc(fs.doc(db, "results", id), body(result));
         return { ok: true };
       } catch (e) {
         return { ok: false, error: failure(e, ALREADY) };
@@ -106,11 +141,7 @@ async function createFirebaseStore() {
     },
     async override(id, result) {
       try {
-        await fs.setDoc(fs.doc(db, "results", id), {
-          ...stamp(result),
-          at: fs.serverTimestamp(),
-          edited: true,
-        });
+        await fs.setDoc(fs.doc(db, "results", id), { ...body(result), edited: true });
         return { ok: true };
       } catch (e) {
         return { ok: false, error: failure(e, "Admin only") };
@@ -124,26 +155,19 @@ async function createFirebaseStore() {
         return { ok: false, error: failure(e, "Admin only") };
       }
     },
-    onAdmin(cb) {
+    onAuth(cb) {
       let alive = true;
-      const off = au.onAuthStateChanged(auth, async (user) => {
-        if (!user) { cb(false); return; }
-        try {
-          const snap = await fs.getDoc(fs.doc(db, "admins", user.uid));
-          if (alive) cb(snap.exists());
-        } catch { if (alive) cb(false); }
+      const off = au.onAuthStateChanged(auth, async (u) => {
+        if (!u) { cb({ user: null, isAdmin: false }); return; }
+        let isAdmin = false;
+        try { isAdmin = (await fs.getDoc(fs.doc(db, "admins", u.uid))).exists(); } catch { /* not an admin */ }
+        if (alive) cb({ user: { uid: u.uid, email: u.email }, isAdmin });
       });
       return () => { alive = false; off(); };
     },
-    async signIn(email, password) {
-      try {
-        await au.signInWithEmailAndPassword(auth, email, password);
-        return { ok: true };
-      } catch (e) {
-        const bad = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"];
-        return { ok: false, error: bad.includes(e?.code) ? "Wrong email or password" : "Could not sign in. Check your connection." };
-      }
-    },
-    async signOut() { await au.signOut(auth); },
+    signIn: (email, pw) => attempt(() => au.signInWithEmailAndPassword(auth, email, pw)),
+    signUp: (email, pw) => attempt(() => au.createUserWithEmailAndPassword(auth, email, pw)),
+    signInGoogle: () => attempt(() => au.signInWithPopup(auth, new au.GoogleAuthProvider())),
+    signOut: () => au.signOut(auth),
   };
 }

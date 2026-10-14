@@ -9,19 +9,22 @@ service cloud.firestore {
 
     // A final score: whole numbers, no tie, the winner at 21 or more.
     function validScore(d) {
-      return d.keys().hasOnly(['a', 'b', 'scoreA', 'scoreB', 'at', 'edited'])
-        && d.a is string && d.b is string && d.a != d.b
+      return d.keys().hasOnly(['a', 'b', 'scoreA', 'scoreB', 'by', 'at', 'edited'])
+        && d.a is string && d.b is string && d.a != d.b && d.by is string
         && d.scoreA is int && d.scoreB is int
         && d.scoreA >= 0 && d.scoreB >= 0 && d.scoreA <= 99 && d.scoreB <= 99
         && d.scoreA != d.scoreB
         && (d.scoreA >= 21 || d.scoreB >= 21);
     }
 
-    // Everybody reads. Anybody may post a score for a match that has none yet, and
-    // nobody but the admin may change or remove one once it is there.
+    // Everybody reads. Anybody signed in may post a score for a match that has none
+    // yet, under their own uid, and nobody but an admin may change or remove one
+    // once it is there.
     match /results/{matchId} {
       allow read: if true;
-      allow create: if validScore(request.resource.data)
+      allow create: if request.auth != null
+        && validScore(request.resource.data)
+        && request.resource.data.by == request.auth.uid
         && matchId.matches('^(s[1-5]-m[1-6]|p-(W[1-5]|L[1-4]|F[12]))$');
       allow update: if isAdmin() && validScore(request.resource.data);
       allow delete: if isAdmin();

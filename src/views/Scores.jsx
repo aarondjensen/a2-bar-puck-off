@@ -11,7 +11,7 @@ function defaultSession() {
   return SESSIONS.find((s) => s.date >= today)?.n ?? SESSIONS.length;
 }
 
-export default function Scores({ store, results, isAdmin, bracket }) {
+export default function Scores({ store, results, user, isAdmin, bracket, onSignIn }) {
   const [session, setSession] = useState(defaultSession);
   const playoffs = session === 6;
   const s = SESSIONS[session - 1];
@@ -36,16 +36,21 @@ export default function Scores({ store, results, isAdmin, bracket }) {
         <span>{playoffs ? "Playoffs" : `Session ${s.n}`}</span>
         <span className="muted">{formatDate(playoffs ? PLAYOFF_DATE : s.date)}</span>
       </h2>
+      {!user && (
+        <button className="btn signprompt" onClick={() => { onSignIn(); window.scrollTo(0, 0); }}>
+          Sign in to enter scores
+        </button>
+      )}
       <section className="card">
         {matches.map((m) => (
-          <MatchRow key={m.id} m={m} result={results[m.id]} store={store} isAdmin={isAdmin} />
+          <MatchRow key={m.id} m={m} result={results[m.id]} store={store} user={user} isAdmin={isAdmin} />
         ))}
       </section>
     </>
   );
 }
 
-function MatchRow({ m, result, store, isAdmin }) {
+function MatchRow({ m, result, store, user, isAdmin }) {
   const [editing, setEditing] = useState(false);
   const A = teamById(m.a);
   const B = teamById(m.b);
@@ -64,6 +69,9 @@ function MatchRow({ m, result, store, isAdmin }) {
   const done = resultFits(result, m.a, m.b);
   // A result exists but belongs to an earlier pairing (a score upstream was corrected).
   const stale = !!result && !done;
+
+  // Only a signed-in user gets a form; everybody sees finished scores.
+  if (!result && !user) return <div className="match">{head}</div>;
 
   if (!result || editing) {
     return (

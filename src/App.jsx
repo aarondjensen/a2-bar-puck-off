@@ -1,5 +1,5 @@
 import { useState } from "react";
-import AdminSignIn from "./views/AdminSignIn.jsx";
+import SignIn from "./views/SignIn.jsx";
 import { useLeague } from "./useLeague.js";
 import Schedule from "./views/Schedule.jsx";
 import Scores from "./views/Scores.jsx";
@@ -29,18 +29,20 @@ export default function App() {
     <div className="shell">
       <header className="top">
         <h1>A2 Bar Puck Off</h1>
-        {league.isAdmin ? (
-          <button className="link" onClick={() => league.store.signOut()}>Admin · Sign out</button>
+        {league.user ? (
+          <button className="link" onClick={() => league.store.signOut()}>
+            {league.isAdmin ? "Admin · Sign out" : "Sign out"}
+          </button>
         ) : (
-          <button className="link" onClick={() => (league.store.mode === "local" ? league.store.signIn() : setSigningIn((v) => !v))}>Admin</button>
+          <button className="link" onClick={() => setSigningIn((v) => !v)}>Sign in</button>
         )}
       </header>
-      {signingIn && !league.isAdmin && (
-        <AdminSignIn store={league.store} onDone={() => setSigningIn(false)} />
+      {signingIn && !league.user && (
+        <SignIn store={league.store} onDone={() => setSigningIn(false)} />
       )}
       <main className="page">
         {tab === "schedule" && <Schedule />}
-        {tab === "scores" && <Scores {...league} />}
+        {tab === "scores" && <Scores {...league} onSignIn={() => setSigningIn(true)} />}
         {tab === "standings" && <Standings {...league} />}
         {tab === "playoffs" && <Playoffs {...league} />}
       </main>

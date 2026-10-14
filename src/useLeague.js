@@ -6,7 +6,7 @@ import { resolveBracket } from "./lib/bracket.js";
 export function useLeague() {
   const [store, setStore] = useState(null);
   const [results, setResults] = useState({});
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [auth, setAuth] = useState({ user: null, isAdmin: false });
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function useLeague() {
       .then((s) => {
         if (!alive) return;
         setStore(s);
-        off = [s.subscribe(setResults), s.onAdmin(setIsAdmin)];
+        off = [s.subscribe(setResults), s.onAuth(setAuth)];
       })
       .catch((e) => alive && setError(e.message));
     return () => { alive = false; off.forEach((f) => f()); };
@@ -27,5 +27,5 @@ export function useLeague() {
     () => resolveBracket(standings.map((r) => r.id), results),
     [standings, results],
   );
-  return { store, results, isAdmin, error, standings, bracket };
+  return { store, results, user: auth.user, isAdmin: auth.isAdmin, error, standings, bracket };
 }

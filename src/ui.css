@@ -79,3 +79,4 @@ button { font: inherit; color: inherit; }
 .signin input { font-size: 16px; padding: 12px; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 8px; width: 100%; }
 @media (min-width: 672px) { .signin { margin: 8px auto; width: 100%; } }
+.signprompt { width: 100%; margin-top: 12px; }
