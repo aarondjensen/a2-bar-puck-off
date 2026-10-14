@@ -1,7 +1,17 @@
 import { teamById } from "../lib/teams.js";
+import { BRACKET } from "../lib/bracket.js";
 
 const SRC = (src) =>
   src.seed ? `Seed ${src.seed}` : src.winner ? `Winner ${src.winner}` : `Loser ${src.loser}`;
+
+// Where the loser of a match goes next: the losers bracket match that takes them, or out.
+const dropsTo = (id) => BRACKET.find((d) => d.slots.some((s) => s.loser === id))?.id;
+function fate(m) {
+  if (m.id === "F1") return "Losers-side win forces F2";
+  if (m.id === "F2") return "Reset final";
+  if (m.side === "winners") return `Loser drops to ${dropsTo(m.id)}`;
+  return "Loser is out";
+}
 
 function Slot({ team, seed, label, score, won }) {
   return (
@@ -16,7 +26,7 @@ function Slot({ team, seed, label, score, won }) {
 function Match({ m, seedOf }) {
   return (
     <div className="bm">
-      <div className="bid">{m.id}</div>
+      <div className="bid"><span>{m.id}</span><span>{fate(m)}</span></div>
       <Slot team={m.a} seed={m.a && seedOf(m.a)} label={SRC(m.slots[0])} score={m.scoreA} won={m.winner && m.winner === m.a} />
       <Slot team={m.b} seed={m.b && seedOf(m.b)} label={SRC(m.slots[1])} score={m.scoreB} won={m.winner && m.winner === m.b} />
     </div>
@@ -40,6 +50,7 @@ export default function Playoffs({ bracket, standings }) {
           <strong>{teamById(bracket.champion).name}</strong>
         </section>
       )}
+      <p className="muted center rule">Double elimination: two losses and a team is out</p>
       <h2 className="sub"><span>Winners</span></h2>
       <div className="bracket">
         {rounds("winners").map((r, i) => (
