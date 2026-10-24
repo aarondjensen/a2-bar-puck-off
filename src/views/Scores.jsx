@@ -3,6 +3,7 @@ import { SESSIONS, PLAYOFF_DATES } from "../lib/schedule.js";
 import { playoffMatchId } from "../lib/bracket.js";
 import { resultFits, validateScore } from "../lib/scoring.js";
 import { teamById } from "../lib/teams.js";
+import OddsLine from "./OddsLine.jsx";
 import { formatDate, todayYmd } from "../lib/dates.js";
 
 // The session to open on: tonight's, else the next one, else the last.
@@ -11,7 +12,7 @@ function defaultSession() {
   return SESSIONS.find((s) => s.date >= today)?.n ?? SESSIONS.length;
 }
 
-export default function Scores({ store, results, user, isAdmin, isMember, bracket, onSignIn }) {
+export default function Scores({ store, results, user, isAdmin, isMember, bracket, odds, onSignIn }) {
   const canPost = !!user && isMember;
   const [session, setSession] = useState(defaultSession);
   const playoffs = session === 6;
@@ -42,7 +43,7 @@ export default function Scores({ store, results, user, isAdmin, isMember, bracke
       <section className="card">
         <h2 className="date">{playoffs ? `Playoffs · ${PLAYOFF_DATES.map(formatDate).join(", ")}` : formatDate(s.date)}</h2>
         {matches.map((m) => (
-          <MatchRow key={m.id} m={m} result={results[m.id]} store={store} canPost={canPost} isAdmin={isAdmin} />
+          <MatchRow key={m.id} m={m} result={results[m.id]} store={store} canPost={canPost} isAdmin={isAdmin} odds={odds} />
         ))}
       </section>
     </>
@@ -70,7 +71,7 @@ function JoinPrompt({ store }) {
   );
 }
 
-function MatchRow({ m, result, store, canPost, isAdmin }) {
+function MatchRow({ m, result, store, canPost, isAdmin, odds }) {
   const [editing, setEditing] = useState(false);
   const A = teamById(m.a);
   const B = teamById(m.b);
@@ -78,9 +79,15 @@ function MatchRow({ m, result, store, canPost, isAdmin }) {
   const head = (
     <div className="matchhead">
       {m.label && <span className="tag">{m.label}</span>}
-      <span className="team">{A ? A.name : "TBD"}</span>
+      <span className="team">
+        {A ? A.name : "TBD"}
+        {A && B && !result && <OddsLine line={odds(m.a, m.b)} side="a" />}
+      </span>
       <span className="vs">vs</span>
-      <span className="team right">{B ? B.name : "TBD"}</span>
+      <span className="team right">
+        {B ? B.name : "TBD"}
+        {A && B && !result && <OddsLine line={odds(m.a, m.b)} side="b" />}
+      </span>
     </div>
   );
 
