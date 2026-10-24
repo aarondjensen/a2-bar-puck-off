@@ -7,6 +7,7 @@ import { buildOdds } from "./lib/odds.js";
 import { REGULAR_MATCHES } from "./lib/schedule.js";
 import { TEAMS } from "./lib/teams.js";
 import { playoffMatchId } from "./lib/bracket.js";
+import { LAST_SEASON } from "./lib/lastSeason.js";
 import { resolveBracket } from "./lib/bracket.js";
 import { applyConfig } from "./lib/config.js";
 
@@ -56,7 +57,7 @@ export function useLeague() {
     const playoffGames = bracket.matches
       .filter((m) => m.a && m.b)
       .map((m) => ({ id: playoffMatchId(m.id), a: m.a, b: m.b }));
-    return buildOdds(results, [...REGULAR_MATCHES, ...playoffGames], TEAMS.map((t) => t.id));
+    return buildOdds(results, [...REGULAR_MATCHES, ...playoffGames], TEAMS.map((t) => t.id), undefined, LAST_SEASON);
   }, [results, bracket]);
   return { store, results, config, finalized, pendingWeek, odds, user: auth.user, isAdmin: auth.isAdmin, isMember: auth.isMember, error, standings, bracket };
 }
