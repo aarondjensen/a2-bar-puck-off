@@ -123,8 +123,8 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
 /* On a phone a long team name wraps. Give every team cell two lines of height with the text
    centered, so a row is the same height whether its names wrap or not. */
 @media (max-width: 520px) {
-  .row .team, .matchhead .team { display: flex; align-items: center; min-height: 2.7em; }
-  .row .team.right, .matchhead .team.right { justify-content: flex-end; text-align: right; }
+  .row .team, .matchhead .team { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-height: 2.7em; }
+  .row .team.right, .matchhead .team.right { align-items: flex-end; text-align: right; }
 }
 /* Same rule as the matchup rows: a name gets two lines of height, centered, so every
    slot in the bracket is the same height whether or not the name wraps. */
@@ -136,3 +136,8 @@ details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2
 @media (min-width: 672px) { .finalize { margin: 8px auto; width: calc(100% - 32px); } }
 .finalize .actions { justify-content: center; padding: 0 0 12px; }
 .finalize .btn { flex: 0 1 220px; }
+.odds { display: block; min-height: 1.25em; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* A team cell that carries an odds line reserves it on top of the two name lines. */
+@media (max-width: 520px) {
+  .row .team:has(.odds), .matchhead .team:has(.odds) { min-height: calc(2.7em + 15px); }
+}

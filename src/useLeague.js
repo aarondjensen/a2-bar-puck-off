@@ -3,6 +3,10 @@ import { createStore } from "./lib/store.js";
 import { computeStandings } from "./lib/standings.js";
 import { SESSIONS } from "./lib/schedule.js";
 import { resultFits } from "./lib/scoring.js";
+import { buildOdds } from "./lib/odds.js";
+import { REGULAR_MATCHES } from "./lib/schedule.js";
+import { TEAMS } from "./lib/teams.js";
+import { playoffMatchId } from "./lib/bracket.js";
 import { resolveBracket } from "./lib/bracket.js";
 import { applyConfig } from "./lib/config.js";
 
@@ -47,5 +51,12 @@ export function useLeague() {
     () => resolveBracket(standings.map((r) => r.id), results),
     [standings, results],
   );
-  return { store, results, config, finalized, pendingWeek, user: auth.user, isAdmin: auth.isAdmin, isMember: auth.isMember, error, standings, bracket };
+  // Lines are rebuilt from every posted result, so they move after each game, not each week.
+  const odds = useMemo(() => {
+    const playoffGames = bracket.matches
+      .filter((m) => m.a && m.b)
+      .map((m) => ({ id: playoffMatchId(m.id), a: m.a, b: m.b }));
+    return buildOdds(results, [...REGULAR_MATCHES, ...playoffGames], TEAMS.map((t) => t.id));
+  }, [results, bracket]);
+  return { store, results, config, finalized, pendingWeek, odds, user: auth.user, isAdmin: auth.isAdmin, isMember: auth.isMember, error, standings, bracket };
 }
