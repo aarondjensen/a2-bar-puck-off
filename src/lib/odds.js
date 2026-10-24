@@ -9,11 +9,18 @@
 // Both are pulled toward "everybody is equal" by a prior worth a few games, so one result
 // never swings a line far and the lines open at a pick'em. The margin rating turns into a win
 // chance with a normal curve whose spread is the league's own game-to-game noise.
+//
+// Checked against last season's real results (30 games, 5 teams), predicting each game from the
+// ones before it: no setting beat a coin flip, and the heavier the pull toward "equal" the better
+// it did. Games to 21 swing about 9 points, so a short season says little about who is better.
+// The priors are therefore heavy, and last season's games count as a light head start
+// (priorWeight) so the opening lines are not all identical.
 export const PARAMS = {
-  marginPrior: 4,   // ridge strength for the margin rating, in "games of no margin"
-  recordPrior: 6,   // ridge strength for the win/loss rating
-  sigma0: 8,        // prior sd of a game's margin, in points
+  marginPrior: 8,   // ridge strength for the margin rating, in "games of no margin"
+  recordPrior: 12,  // ridge strength for the win/loss rating
+  sigma0: 9.5,      // prior sd of a game's margin, in points (last season's was 9.4)
   sigmaWeight: 6,   // how many games the prior sigma is worth
+  priorWeight: 0.25, // how much one game from last season counts against one from this season
   blend: 0.5,       // share of the margin model in the final win chance
   vig: 0.045,       // book's overround: both sides' implied chances add up to 1 + vig
 };
@@ -56,22 +63,23 @@ export function fitRatings(games, ids, params = PARAMS) {
   const ix = new Map(ids.map((id, i) => [id, i]));
   const gs = games
     .filter((g) => ix.has(g.a) && ix.has(g.b))
-    .map((g) => ({ a: ix.get(g.a), b: ix.get(g.b), y: g.scoreA - g.scoreB }));
+    .map((g) => ({ a: ix.get(g.a), b: ix.get(g.b), y: g.scoreA - g.scoreB, w: g.w ?? 1 }));
 
   // Margin rating: (X'X + lambda I) r = X'y.
   const A = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? params.marginPrior : 0)));
   const rhs = new Array(n).fill(0);
   for (const g of gs) {
-    A[g.a][g.a] += 1; A[g.b][g.b] += 1;
-    A[g.a][g.b] -= 1; A[g.b][g.a] -= 1;
-    rhs[g.a] += g.y; rhs[g.b] -= g.y;
+    A[g.a][g.a] += g.w; A[g.b][g.b] += g.w;
+    A[g.a][g.b] -= g.w; A[g.b][g.a] -= g.w;
+    rhs[g.a] += g.w * g.y; rhs[g.b] -= g.w * g.y;
   }
   const margin = solve(A, rhs);
 
   // The league's own game-to-game noise, shrunk toward the prior.
   let sse = 0;
-  for (const g of gs) sse += (g.y - (margin[g.a] - margin[g.b])) ** 2;
-  const sigma = Math.sqrt((sse + params.sigmaWeight * params.sigma0 ** 2) / (gs.length + params.sigmaWeight));
+  let weight = 0;
+  for (const g of gs) { sse += g.w * (g.y - (margin[g.a] - margin[g.b])) ** 2; weight += g.w; }
+  const sigma = Math.sqrt((sse + params.sigmaWeight * params.sigma0 ** 2) / (weight + params.sigmaWeight));
 
   // Record rating: ridge-penalized logistic fit by Newton's method.
   let rec = new Array(n).fill(0);
@@ -81,15 +89,15 @@ export function fitRatings(games, ids, params = PARAMS) {
     for (const g of gs) {
       const p = logistic(rec[g.a] - rec[g.b]);
       const won = g.y > 0 ? 1 : 0;
-      grad[g.a] += won - p; grad[g.b] -= won - p;
-      const w = p * (1 - p);
+      grad[g.a] += g.w * (won - p); grad[g.b] -= g.w * (won - p);
+      const w = g.w * p * (1 - p);
       H[g.a][g.a] += w; H[g.b][g.b] += w;
       H[g.a][g.b] -= w; H[g.b][g.a] -= w;
     }
     const step = solve(H, grad);
     rec = rec.map((r, i) => r + step[i]);
   }
-  return { ids, ix, margin, record: rec, sigma, games: gs.length };
+  return { ids, ix, margin, record: rec, sigma, games: weight };
 }
 
 const american = (p) => {
@@ -120,9 +128,10 @@ export function lineFor(rt, a, b, params = PARAMS) {
   };
 }
 
-// Convenience: fit from stored results over a list of matches, then return a lookup.
-export function buildOdds(results, matches, ids, params = PARAMS) {
-  const games = [];
+// Convenience: fit from stored results over a list of matches (plus last season's games at a
+// reduced weight), then return a lookup.
+export function buildOdds(results, matches, ids, params = PARAMS, priorGames = []) {
+  const games = priorGames.map((g) => ({ ...g, w: params.priorWeight }));
   for (const m of matches) {
     const r = results[m.id];
     if (!r) continue;
